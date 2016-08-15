@@ -1,5 +1,8 @@
-box: keithyokoma/wercker-container-android
-
+box:
+  id: sakuna63/wercker-container-android
+  username: $USERNAME
+  password: $PASSWORD
+  tag: latest
 build:
   steps:
     - script:
