@@ -2,7 +2,7 @@ box:
   id: sakuna63/wercker-container-android
   username: $USERNAME
   password: $PASSWORD
-  tag: latest
+  tag: android-24
 build:
   steps:
     - script:
