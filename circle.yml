@@ -1,0 +1,7 @@
+# dependencies:
+#   pre:
+#     - echo y | android update sdk --no-ui --all --filter "package-name"
+
+test:
+  override:
+    - ./gradlew clean build -PdisablePreDex
