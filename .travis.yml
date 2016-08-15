@@ -1,0 +1,15 @@
+language: android
+
+jdk: oraclejdk8
+
+android:
+  components:
+  - build-tools-24.0.1
+  - android-24
+
+script: ./gradlew clean build -PdisablePreDex
+
+notifications:
+  email: false
+  on_success: always
+  on_failure: always
