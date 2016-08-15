@@ -24,7 +24,7 @@ RUN \
     rm -rf /var/cache/oracle-jdk7-installer
 
 # Android SDK installation
-RUN curl -L -O http://dl.google.com/android/android-sdk_r24.4.1-linux.tgz && tar xf android-sdk_r24.4.1-linux.tgz -C /usr/local && \
+RUN cd /usr/local/ && curl -L -O http://dl.google.com/android/android-sdk_r24.4.1-linux.tgz && tar xf --no-same-owner android-sdk_r24.4.1-linux.tgz && \
     echo y | /usr/local/android-sdk-linux/tools/android update sdk --no-ui --force --all --filter "tools" && \
     echo y | /usr/local/android-sdk-linux/tools/android update sdk --no-ui --force --all --filter "platform-tools,build-tools-24.0.1,android-24" && \
     echo y | /usr/local/android-sdk-linux/tools/android update sdk --no-ui --force --all --filter "extra-google-google_play_services,extra-google-m2repository,extra-android-m2repository,addon-google_apis-google-23"
@@ -50,7 +50,7 @@ ENV PATH $PATH:$GRADLE_HOME/bin
 ENV TERM dumb
 
 # Clean up
-# RUN rm -rf /usr/local/android-sdk_r24.4.1-linux.tgz
+RUN rm -rf /usr/local/android-sdk_r24.4.1-linux.tgz
 # RUN rm -rf /usr/local/android-ndk-r9b-linux-x86_64.tar.bz2
 # RUN rm -rf /usr/local/gradle-2.14-all.zip
 
