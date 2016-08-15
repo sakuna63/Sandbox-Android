@@ -9,3 +9,10 @@ build:
       name: run gradle assembleDebug
       code: |
         ./gradlew --project-cache-dir=$WERCKER_CACHE_DIR assemble testDebugUnitTest -PdisablePreDex
+# http://devcenter.wercker.com/docs/notifications/slack.html
+after-steps:
+  - slack-notifier:
+      url: $SLACK_URL
+      channel: general
+      username: werckerbot
+#      notify_on: "failed"
