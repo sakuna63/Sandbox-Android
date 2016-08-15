@@ -1,0 +1,10 @@
+language: java
+
+jdk:
+    - oraclejdk8
+
+build:
+  pre_ci:
+    # - sudo apt-get install -u lib32stdc++6 lib32z1
+  ci:
+    - ./gradlew clean test -PdisablePreDex
