@@ -4,4 +4,9 @@ dependencies:
     - echo y | android update sdk --no-ui --all --filter "build-tools-24.0.1"
 test:
   override:
-    - ./gradlew clean build -PdisablePreDex
+    - android list avd
+    - emulator -avd circleci-android22 -no-audio -no-window:
+        background: true
+        parallel: true
+    - circle-android wait-for-boot
+    - ./gradlew clean build test connectedAndroidTest -PdisablePreDex --console=plain
