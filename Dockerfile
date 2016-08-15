@@ -55,4 +55,9 @@ RUN rm -rf /usr/local/android-sdk_r24.4.1-linux.tgz
 # RUN rm -rf /usr/local/gradle-2.14-all.zip
 
 # CI
+RUN mkdir /project
+WORKDIR /project
+
+COPY . /project
+
 RUN ./gradlew clean assembleDebug -PdisablePreDex
