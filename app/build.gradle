@@ -1,5 +1,5 @@
 apply plugin: 'com.android.application'
-//apply plugin: 'groovyx.android'
+apply plugin: 'groovyx.android'
 apply plugin: 'com.neenbedankt.android-apt'
 
 android {
@@ -23,13 +23,13 @@ android {
     }
 }
 
-//androidGroovy {
-//    options {
-//        configure(groovyOptions) {
-//            javaAnnotationProcessing = true
-//        }
-//    }
-//}
+androidGroovy {
+    options {
+        configure(groovyOptions) {
+            javaAnnotationProcessing = true
+        }
+    }
+}
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
