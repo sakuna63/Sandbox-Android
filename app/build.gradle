@@ -24,6 +24,7 @@ android {
 }
 
 androidGroovy {
+    skipJavaC = true
     options {
         configure(groovyOptions) {
             javaAnnotationProcessing = true
