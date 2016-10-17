@@ -3,10 +3,11 @@
 buildscript {
     repositories {
         jcenter()
+        maven { url 'http://oss.jfrog.org/artifactory/oss-snapshot-local' }
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:2.2.0'
-        classpath 'org.codehaus.groovy:groovy-android-gradle-plugin:1.1.0'
+        classpath 'org.codehaus.groovy:groovy-android-gradle-plugin:1.2.0-SNAPSHOT'
         classpath 'com.neenbedankt.gradle.plugins:android-apt:1.8'
     }
 }
