@@ -4,6 +4,8 @@ android {
     compileSdkVersion 24
     buildToolsVersion "24.0.1"
 
+    dataBinding.enabled = true
+
     defaultConfig {
         applicationId "com.sakuna63.sandbox"
         minSdkVersion 15
