@@ -18,20 +18,17 @@ package com.sakuna63.sandbox;
 
 import android.animation.ObjectAnimator;
 import android.animation.TimeInterpolator;
-import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.Color;
-import android.graphics.ColorMatrix;
-import android.graphics.ColorMatrixColorFilter;
-import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.support.v4.view.ViewCompat;
+import android.support.v7.app.AppCompatActivity;
+import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.TextView;
 
 /**
  * This sub-activity shows a zoomed-in view of a specific photo, along with the
@@ -43,23 +40,18 @@ import android.widget.TextView;
  * the description will eventually slide into place. The exit animation runs all
  * of this in reverse.
  */
-public class PictureDetailsActivity extends Activity {
+public class PictureDetailsActivity extends AppCompatActivity {
 
     private static final TimeInterpolator sDecelerator = new DecelerateInterpolator();
     private static final TimeInterpolator sAccelerator = new AccelerateInterpolator();
     private static final String PACKAGE_NAME = "com.example.android.activityanim";
-    private static final int ANIM_DURATION = 500;
+    private static final int ANIM_DURATION = 300;
     ColorDrawable mBackground;
     int mLeftDelta;
     int mTopDelta;
     float mWidthScale;
     float mHeightScale;
-    private BitmapDrawable mBitmapDrawable;
-    private ColorMatrix colorizerMatrix = new ColorMatrix();
     private ImageView mImageView;
-    private TextView mTextView;
-    private FrameLayout mTopLevelLayout;
-    private ShadowLayout mShadowLayout;
     private int mOriginalOrientation;
 
     @Override
@@ -67,28 +59,23 @@ public class PictureDetailsActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.picture_info);
         mImageView = (ImageView) findViewById(R.id.imageView);
-        mTopLevelLayout = (FrameLayout) findViewById(R.id.topLevelLayout);
-        mShadowLayout = (ShadowLayout) findViewById(R.id.shadowLayout);
-        mTextView = (TextView) findViewById(R.id.description);
 
         // Retrieve the data we need for the picture/description to display and
         // the thumbnail to animate it from
         Bundle bundle = getIntent().getExtras();
         Bitmap bitmap = BitmapUtils.getBitmap(getResources(),
                 bundle.getInt(PACKAGE_NAME + ".resourceId"));
-        String description = bundle.getString(PACKAGE_NAME + ".description");
         final int thumbnailTop = bundle.getInt(PACKAGE_NAME + ".top");
         final int thumbnailLeft = bundle.getInt(PACKAGE_NAME + ".left");
         final int thumbnailWidth = bundle.getInt(PACKAGE_NAME + ".width");
         final int thumbnailHeight = bundle.getInt(PACKAGE_NAME + ".height");
         mOriginalOrientation = bundle.getInt(PACKAGE_NAME + ".orientation");
 
-        mBitmapDrawable = new BitmapDrawable(getResources(), bitmap);
-        mImageView.setImageDrawable(mBitmapDrawable);
-        mTextView.setText(description);
+        mImageView.setImageBitmap(bitmap);
 
+        View topLevelLayout = findViewById(R.id.topLevelLayout);
         mBackground = new ColorDrawable(Color.BLACK);
-        mTopLevelLayout.setBackground(mBackground);
+        ViewCompat.setBackground(topLevelLayout, mBackground);
 
         // Only run the animation if we're coming from the parent activity, not if
         // we're recreated automatically by the window manager (e.g., device rotation)
@@ -138,42 +125,16 @@ public class PictureDetailsActivity extends Activity {
         mImageView.setTranslationX(mLeftDelta);
         mImageView.setTranslationY(mTopDelta);
 
-        // We'll fade the text in later
-        mTextView.setAlpha(0);
-
         // Animate scale and translation to go from thumbnail to full size
         mImageView.animate().setDuration(duration).
                 scaleX(1).scaleY(1).
                 translationX(0).translationY(0).
-                setInterpolator(sDecelerator).
-                withEndAction(new Runnable() {
-                    public void run() {
-                        // Animate the description in after the image animation
-                        // is done. Slide and fade the text in from underneath
-                        // the picture.
-                        mTextView.setTranslationY(-mTextView.getHeight());
-                        mTextView.animate().setDuration(duration / 2).
-                                translationY(0).alpha(1).
-                                setInterpolator(sDecelerator);
-                    }
-                });
+                setInterpolator(sDecelerator);
 
         // Fade in the black background
-        ObjectAnimator bgAnim = ObjectAnimator.ofInt(mBackground, "alpha", 0, 255);
+        ObjectAnimator bgAnim = ObjectAnimator.ofInt(mBackground, "alpha", 0, 200);
         bgAnim.setDuration(duration);
         bgAnim.start();
-
-        // Animate a color filter to take the image from grayscale to full color.
-        // This happens in parallel with the image scaling and moving into place.
-        ObjectAnimator colorizer = ObjectAnimator.ofFloat(PictureDetailsActivity.this,
-                "saturation", 0, 1);
-        colorizer.setDuration(duration);
-        colorizer.start();
-
-        // Animate a drop-shadow of the image
-        ObjectAnimator shadowAnim = ObjectAnimator.ofFloat(mShadowLayout, "shadowDepth", 0, 1);
-        shadowAnim.setDuration(duration);
-        shadowAnim.start();
     }
 
     /**
@@ -205,41 +166,18 @@ public class PictureDetailsActivity extends Activity {
             fadeOut = false;
         }
 
-        // First, slide/fade text out of the way
-        mTextView.animate().translationY(-mTextView.getHeight()).alpha(0).
-                setDuration(duration / 2).setInterpolator(sAccelerator).
-                withEndAction(new Runnable() {
-                    public void run() {
-                        // Animate image back to thumbnail size/location
-                        mImageView.animate().setDuration(duration).
-                                scaleX(mWidthScale).scaleY(mHeightScale).
-                                translationX(mLeftDelta).translationY(mTopDelta).
-                                withEndAction(endAction);
-                        if (fadeOut) {
-                            mImageView.animate().alpha(0);
-                        }
-                        // Fade out background
-                        ObjectAnimator bgAnim = ObjectAnimator.ofInt(mBackground, "alpha", 0);
-                        bgAnim.setDuration(duration);
-                        bgAnim.start();
-
-                        // Animate the shadow of the image
-                        ObjectAnimator shadowAnim = ObjectAnimator.ofFloat(mShadowLayout,
-                                "shadowDepth", 1, 0);
-                        shadowAnim.setDuration(duration);
-                        shadowAnim.start();
-
-                        // Animate a color filter to take the image back to grayscale,
-                        // in parallel with the image scaling and moving into place.
-                        ObjectAnimator colorizer =
-                                ObjectAnimator.ofFloat(PictureDetailsActivity.this,
-                                        "saturation", 1, 0);
-                        colorizer.setDuration(duration);
-                        colorizer.start();
-                    }
-                });
-
-
+        // Animate image back to thumbnail size/location
+        mImageView.animate().setDuration(duration).
+                scaleX(mWidthScale).scaleY(mHeightScale).
+                translationX(mLeftDelta).translationY(mTopDelta).
+                withEndAction(endAction);
+        if (fadeOut) {
+            mImageView.animate().alpha(0);
+        }
+        // Fade out background
+        ObjectAnimator bgAnim = ObjectAnimator.ofInt(mBackground, "alpha", 0);
+        bgAnim.setDuration(duration);
+        bgAnim.start();
     }
 
     /**
@@ -254,18 +192,6 @@ public class PictureDetailsActivity extends Activity {
                 finish();
             }
         });
-    }
-
-    /**
-     * This is called by the colorizing animator. It sets a saturation factor that is then
-     * passed onto a filter on the picture's drawable.
-     *
-     * @param value
-     */
-    public void setSaturation(float value) {
-        colorizerMatrix.setSaturation(value);
-        ColorMatrixColorFilter colorizerFilter = new ColorMatrixColorFilter(colorizerMatrix);
-        mBitmapDrawable.setColorFilter(colorizerFilter);
     }
 
     @Override
