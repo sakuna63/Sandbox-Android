@@ -20,15 +20,21 @@ import android.animation.ObjectAnimator;
 import android.animation.TimeInterpolator;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.RectF;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.support.v4.view.ViewCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
-import android.widget.ImageView;
+
+import java.util.Arrays;
+
+import uk.co.senab.photoview.PhotoView;
 
 /**
  * This sub-activity shows a zoomed-in view of a specific photo, along with the
@@ -51,31 +57,36 @@ public class PictureDetailsActivity extends AppCompatActivity {
     int mTopDelta;
     float mWidthScale;
     float mHeightScale;
-    private ImageView mImageView;
+    private PhotoView mImageView;
     private int mOriginalOrientation;
+    private int mThumbnailWidth;
+    private int mThumbnailHeight;
+    private View mParentLayout;
+    private int mThumbnailTop;
+    private int mThumbnailLeft;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.picture_info);
-        mImageView = (ImageView) findViewById(R.id.imageView);
+        mImageView = (PhotoView) findViewById(R.id.imageView);
 
         // Retrieve the data we need for the picture/description to display and
         // the thumbnail to animate it from
         Bundle bundle = getIntent().getExtras();
         Bitmap bitmap = BitmapUtils.getBitmap(getResources(),
                 bundle.getInt(PACKAGE_NAME + ".resourceId"));
-        final int thumbnailTop = bundle.getInt(PACKAGE_NAME + ".top");
-        final int thumbnailLeft = bundle.getInt(PACKAGE_NAME + ".left");
-        final int thumbnailWidth = bundle.getInt(PACKAGE_NAME + ".width");
-        final int thumbnailHeight = bundle.getInt(PACKAGE_NAME + ".height");
+        mThumbnailTop = bundle.getInt(PACKAGE_NAME + ".top");
+        mThumbnailLeft = bundle.getInt(PACKAGE_NAME + ".left");
+        mThumbnailWidth = bundle.getInt(PACKAGE_NAME + ".width");
+        mThumbnailHeight = bundle.getInt(PACKAGE_NAME + ".height");
         mOriginalOrientation = bundle.getInt(PACKAGE_NAME + ".orientation");
 
         mImageView.setImageBitmap(bitmap);
 
-        View topLevelLayout = findViewById(R.id.topLevelLayout);
+        mParentLayout = findViewById(R.id.topLevelLayout);
         mBackground = new ColorDrawable(Color.BLACK);
-        ViewCompat.setBackground(topLevelLayout, mBackground);
+        ViewCompat.setBackground(mParentLayout, mBackground);
 
         // Only run the animation if we're coming from the parent activity, not if
         // we're recreated automatically by the window manager (e.g., device rotation)
@@ -91,12 +102,17 @@ public class PictureDetailsActivity extends AppCompatActivity {
                     // to the screen and each other
                     int[] screenLocation = new int[2];
                     mImageView.getLocationOnScreen(screenLocation);
-                    mLeftDelta = thumbnailLeft - screenLocation[0];
-                    mTopDelta = thumbnailTop - screenLocation[1];
+                    mLeftDelta = mThumbnailLeft - screenLocation[0];
+                    mTopDelta = mThumbnailTop - screenLocation[1];
+                    Log.d("PictureDetailsActivity", Arrays.toString(screenLocation));
+
+//                    ViewGroup.LayoutParams lp = mImageView.getLayoutParams();
+//                    lp.height = lp.width * (mThumbnailHeight / mThumbnailWidth);
+//                    mImageView.setLayoutParams(lp);
 
                     // Scale factors to make the large version the same size as the thumbnail
-                    mWidthScale = (float) thumbnailWidth / mImageView.getWidth();
-                    mHeightScale = (float) thumbnailHeight / mImageView.getHeight();
+                    mWidthScale = (float) mThumbnailWidth / mImageView.getWidth();
+                    mHeightScale = (float) mThumbnailHeight / mImageView.getHeight();
 
                     runEnterAnimation();
 
@@ -129,6 +145,14 @@ public class PictureDetailsActivity extends AppCompatActivity {
         mImageView.animate().setDuration(duration).
                 scaleX(1).scaleY(1).
                 translationX(0).translationY(0).
+                withEndAction(new Runnable() {
+                    @Override
+                    public void run() {
+                        ViewGroup.LayoutParams lp = mImageView.getLayoutParams();
+                        lp.height = ViewGroup.LayoutParams.MATCH_PARENT;
+                        mImageView.setLayoutParams(lp);
+                    }
+                }).
                 setInterpolator(sDecelerator);
 
         // Fade in the black background
@@ -166,18 +190,64 @@ public class PictureDetailsActivity extends AppCompatActivity {
             fadeOut = false;
         }
 
-        // Animate image back to thumbnail size/location
-        mImageView.animate().setDuration(duration).
-                scaleX(mWidthScale).scaleY(mHeightScale).
-                translationX(mLeftDelta).translationY(mTopDelta).
-                withEndAction(endAction);
-        if (fadeOut) {
-            mImageView.animate().alpha(0);
-        }
-        // Fade out background
-        ObjectAnimator bgAnim = ObjectAnimator.ofInt(mBackground, "alpha", 0);
-        bgAnim.setDuration(duration);
-        bgAnim.start();
+        // get view raw position in display
+        int[] xy = new int[2];
+        mImageView.getLocationOnScreen(xy);
+        Log.d("PictureDetailsActivity", Arrays.toString(xy));
+
+        // get scaled rect
+        RectF scaledRect = new RectF(mImageView.getDisplayRect());
+        Log.d("PictureDetailsActivity", "scaledRect:" + scaledRect);
+        float scale = mImageView.getScale();
+        Log.d("PictureDetailsActivity", "scale:" + scale);
+
+        // reset PhotoView scale
+        mImageView.setScale(1.0f, false);
+        RectF defaultRect = new RectF(mImageView.getDisplayRect());
+        Log.d("PictureDetailsActivity", "defaultRect:" + defaultRect);
+
+        // adjust view size to thumbnail aspect ratio
+        ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) mImageView.getLayoutParams();
+        lp.height = (int) (mImageView.getWidth() * ((float) mThumbnailHeight / mThumbnailWidth));
+
+        // adjust scaled size and position
+        mImageView.setPivotX(0);
+        mImageView.setPivotY(0);
+        mImageView.setScaleX(scale);
+        mImageView.setScaleY(scale);
+
+        float translationX = scaledRect.left - defaultRect.left;
+        Log.d("PictureDetailsActivity", "translationX:" + translationX);
+//        mImageView.setTranslationX(translationX);
+        float translationY = scaledRect.top - defaultRect.top;
+        Log.d("PictureDetailsActivity", "translationY:" + translationY);
+//        mImageView.setTranslationY(translationY);
+
+//        lp.leftMargin = (int) scaledRect.left;
+//        lp.topMargin = (int) scaledRect.top;
+//        lp.rightMargin = Math.min((int) (mParentLayout.getWidth() - scaledRect.right), 0);
+//        lp.bottomMargin = Math.min((int) (mParentLayout.getHeight() - scaledRect.bottom), 0);
+//        mImageView.setLayoutParams(lp);
+//        mImageView.setTop((int) scaledRect.top);
+//        mImageView.setLeft((int) scaledRect.left);
+//
+//        float widthScale = mThumbnailWidth / scaledRect.width();
+//        float heightScale = mThumbnailHeight / scaledRect.height();
+//        float leftDelta = mThumbnailLeft - scaledRect.left - xy[0];
+//        float topDelta = mThumbnailTop - scaledRect.top - xy[1];
+//
+//        // Animate image back to thumbnail size/location
+//        mImageView.animate().setDuration(duration).
+//                scaleX(widthScale).scaleY(heightScale).
+//                translationX(leftDelta).translationY(topDelta).
+//                withEndAction(endAction);
+//        if (fadeOut) {
+//            mImageView.animate().alpha(0);
+//        }
+//        // Fade out background
+//        ObjectAnimator bgAnim = ObjectAnimator.ofInt(mBackground, "alpha", 0);
+//        bgAnim.setDuration(duration);
+//        bgAnim.start();
     }
 
     /**
