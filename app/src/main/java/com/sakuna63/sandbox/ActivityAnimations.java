@@ -45,8 +45,8 @@ import java.util.HashMap;
 public class ActivityAnimations extends AppCompatActivity {
 
     private static final String PACKAGE = "com.example.android.activityanim";
+    public static boolean sEnableRotate;
     static float sAnimatorScale = 1;
-
     GridLayout mGridLayout;
     HashMap<ImageView, PictureData> mPicturesData = new HashMap<ImageView, PictureData>();
     BitmapUtils mBitmapUtils = new BitmapUtils();
@@ -124,6 +124,9 @@ public class ActivityAnimations extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.menu_slow) {
             sAnimatorScale = item.isChecked() ? 1 : 5;
+            item.setChecked(!item.isChecked());
+        } else if (item.getItemId() == R.id.menu_rotate) {
+            sEnableRotate = !item.isChecked();
             item.setChecked(!item.isChecked());
         }
         return super.onOptionsItemSelected(item);
