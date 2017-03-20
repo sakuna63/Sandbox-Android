@@ -124,48 +124,37 @@ public class PictureDetailsActivity extends AppCompatActivity {
     public void runEnterAnimation() {
         final long duration = (long) (ANIM_DURATION * ActivityAnimations.sAnimatorScale);
 
-        // Figure out where the thumbnail and full size versions are, relative
-        // to the screen and each other
         int[] screenLocation = new int[2];
         mImageView.getLocationOnScreen(screenLocation);
-        float leftDelta = (mStartThumbnailLeft + mStartThumbnailWidth / 2f) - (screenLocation[0] + (mImageView.getWidth() / 2f));
-        float topDelta = (mStartThumbnailTop + mStartThumbnailHeight / 2f) - (screenLocation[1] + (mImageView.getHeight() / 2f));
 
-        // Scale factors to make the large version the same size as the thumbnail
+        float startCenterX = mStartThumbnailLeft + mStartThumbnailWidth / 2f;
+        float targetCenterX = screenLocation[0] + (mImageView.getWidth() / 2f);
+        float leftDelta = startCenterX - targetCenterX;
+
+        float startCenterY = mStartThumbnailTop + mStartThumbnailHeight / 2f;
+        float targetCenterY = screenLocation[1] + (mImageView.getHeight() / 2f);
+        float topDelta = startCenterY - targetCenterY;
+
         float widthScale = (float) mStartThumbnailWidth / mImageView.getWidth();
         float heightScale = (float) mStartThumbnailHeight / mImageView.getHeight();
 
-        // Set starting values for properties we're going to animate. These
-        // values scale and position the full size version down to the thumbnail
-        // size/location, from which we'll animate it back up
-//        mImageView.setPivotX(0);
-//        mImageView.setPivotY(0);
         mImageView.setScaleX(widthScale);
         mImageView.setScaleY(heightScale);
         mImageView.setTranslationX(leftDelta);
         mImageView.setTranslationY(topDelta);
 
         // Animate scale and translation to go from thumbnail to full size
-        mImageView.animate().setDuration(duration).
-                scaleX(1).scaleY(1).
-                translationX(0).translationY(0).
-                withEndAction(new Runnable() {
+        mImageView.animate().setDuration(duration)
+                .scaleX(1)
+                .scaleY(1)
+                .translationX(0)
+                .translationY(0)
+                .withEndAction(new Runnable() {
                     @Override
                     public void run() {
                         // Expand view height to enable scale image by pinch in/out
                         ViewGroup.LayoutParams lp = mImageView.getLayoutParams();
                         lp.height = ViewGroup.LayoutParams.MATCH_PARENT;
-//                        if (mEnableRotation) {
-////                            lp.width = mParentLayout.getHeight();
-//                            lp.width = ViewGroup.LayoutParams.MATCH_PARENT;
-////                            lp.height = mParentLayout.getWidth();
-//                            lp.height = ViewGroup.LayoutParams.MATCH_PARENT;
-//                        } else {
-//                            lp.width = mParentLayout.getWidth();
-//                            lp.height = mParentLayout.getHeight();
-//                        }
-//                        Log.d("PictureDetailsActivity", "lp.width:" + lp.width);
-//                        Log.d("PictureDetailsActivity", "lp.height:" + lp.height);
                         mImageView.setLayoutParams(lp);
 
                         if (mEnableRotation) {
@@ -185,18 +174,6 @@ public class PictureDetailsActivity extends AppCompatActivity {
 
         if (mEnableRotation) {
             mImageView.animate().rotation(90f);
-//            ValueAnimator rotateAnimator = ValueAnimator.ofFloat(0, 90f)
-//                    .setDuration(duration);
-//            rotateAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-//                @Override
-//                public void onAnimationUpdate(ValueAnimator animation) {
-//                    Matrix matrix = new Matrix();
-//                    matrix.postRotate((Float) animation.getAnimatedValue(), mImageView.getWidth() / 2f, mImageView.getHeight() / 2f);
-//                    mImageView.setDisplayMatrix(matrix);
-//                }
-//            });
-//            rotateAnimator.setInterpolator(sDecelerator);
-//            rotateAnimator.start();
         }
 
         // Fade in the black background
@@ -220,26 +197,27 @@ public class PictureDetailsActivity extends AppCompatActivity {
         // starting size/location that we want to start from. Just animate to the
         // thumbnail size/location that we retrieved earlier
 
-        // get view raw position in display
-        int[] xy = new int[2];
-        mImageView.getLocationOnScreen(xy);
-        Log.d("PictureDetailsActivity", Arrays.toString(xy));
+        int[] screenLocation = new int[2];
+        mImageView.getLocationOnScreen(screenLocation);
+        Log.d("PictureDetailsActivity", Arrays.toString(screenLocation));
+        int viewLeft = screenLocation[0];
+        int viewTop = screenLocation[1];
 
-        int viewX = xy[0];
-        int viewY = xy[1];
+        float imageScale = mImageView.getScale();
+        Log.d("PictureDetailsActivity", "imageScale:" + imageScale);
 
-        // get scaled rect
-        float scale = mImageView.getScale();
-        Log.d("PictureDetailsActivity", "scale:" + scale);
-        RectF scaledRect = new RectF(mImageView.getDisplayRect());
-        Log.d("PictureDetailsActivity", "scaledRect:" + scaledRect);
+        // get scaled rotated rect
+        RectF scaledRotatedRect = new RectF(mImageView.getDisplayRect());
+        Log.d("PictureDetailsActivity", "scaledRotatedRect:" + scaledRotatedRect);
 
-        // reset PhotoView scale
+        // get rotated rect
         mImageView.setScale(1.0f, false);
         if (mEnableRotation) {
             mImageView.setRotationTo(90f);
         }
         RectF rotatedRect = new RectF(mImageView.getDisplayRect());
+
+        // get default rect(no scale, no rotation)
         Log.d("PictureDetailsActivity", "rotatedRect:" + rotatedRect);
         if (mEnableRotation) {
             mImageView.setRotationTo(0f);
@@ -251,21 +229,21 @@ public class PictureDetailsActivity extends AppCompatActivity {
         lp.height = (int) (mImageView.getWidth() * ((float) mStartThumbnailHeight / mStartThumbnailWidth));
         mImageView.setLayoutParams(lp);
 
-        // adjust scaled size and position
-        mImageView.setPivotX(0);
-        mImageView.setPivotY(0);
-        mImageView.setScaleX(scale);
-        mImageView.setScaleY(scale);
+        // scale view size
+        mImageView.setScaleX(imageScale);
+        mImageView.setScaleY(imageScale);
 
-        float translationX = scaledRect.left - rotatedRect.left;
+        // translate view to scaled rect center
+        float translationX = scaledRotatedRect.centerX() - rotatedRect.centerX();
         if (mEnableRotation) {
-            translationX = scaledRect.top - rotatedRect.top;
+            translationX = scaledRotatedRect.centerY() - rotatedRect.centerY();
         }
         Log.d("PictureDetailsActivity", "translationX:" + translationX);
         mImageView.setTranslationX(translationX);
-        float translationY = scaledRect.top - rotatedRect.top;
+
+        float translationY = scaledRotatedRect.centerY() - rotatedRect.centerY();
         if (mEnableRotation) {
-            translationY = rotatedRect.right - scaledRect.right;
+            translationY = scaledRotatedRect.centerX() - rotatedRect.centerX();
         }
         Log.d("PictureDetailsActivity", "translationY:" + translationY);
         mImageView.setTranslationY(translationY);
@@ -273,17 +251,24 @@ public class PictureDetailsActivity extends AppCompatActivity {
         float imageWidth = mEnableRotation ? rotatedRect.height() : rotatedRect.width();
         float imageHeight = mEnableRotation ? rotatedRect.width() : rotatedRect.height();
 
-        float pivotX = imageWidth / 2f;
-        Log.d("PictureDetailsActivity", "pivotX:" + pivotX);
-        mImageView.setPivotX(pivotX);
-        float pivotY = imageHeight / 2f;
-        Log.d("PictureDetailsActivity", "pivotY:" + pivotY);
-        mImageView.setPivotY(pivotY);
+//        float pivotX = imageWidth / 2f;
+//        Log.d("PictureDetailsActivity", "pivotX:" + pivotX);
+//        mImageView.setPivotX(pivotX);
+//        float pivotY = imageHeight / 2f;
+//        Log.d("PictureDetailsActivity", "pivotY:" + pivotY);
+//        mImageView.setPivotY(pivotY);
 
         float widthScale = mStartThumbnailWidth / imageWidth;
         float heightScale = mStartThumbnailHeight / imageHeight;
-        float leftDelta = (mStartThumbnailLeft + mStartThumbnailWidth / 2f) - (viewX + defaultRect.left + (imageWidth / 2f));
-        float topDelta = (mStartThumbnailTop + mStartThumbnailHeight / 2f) - (viewY + defaultRect.top + (imageHeight / 2f));
+
+
+        float startCenterX = mStartThumbnailLeft + mStartThumbnailWidth / 2f;
+        float targetCenterX = viewLeft + defaultRect.left + (imageWidth / 2f);
+        float leftDelta = startCenterX - targetCenterX;
+
+        float startCenterY = mStartThumbnailTop + mStartThumbnailHeight / 2f;
+        float targetCenterY = viewTop + defaultRect.top + (imageHeight / 2f);
+        float topDelta = startCenterY - targetCenterY;
 
         Log.d("PictureDetailsActivity", "widthScale:" + widthScale);
         Log.d("PictureDetailsActivity", "heightScale:" + heightScale);
@@ -296,19 +281,19 @@ public class PictureDetailsActivity extends AppCompatActivity {
                 scaleY(heightScale).
                 translationX(leftDelta).
                 translationY(topDelta).
-//                withEndAction(endAction);
-        withEndAction(null);
+                withEndAction(endAction);
+//        withEndAction(null);
 
-//        if (mEnableRotation) {
-//            mImageView.setRotation(90f);
-//            mImageView.animate().rotation(0f);
-//        }
-//
-////        mImageView.animate().alpha(0);
-//        // Fade out background
-//        ObjectAnimator bgAnim = ObjectAnimator.ofInt(mBackground, "alpha", 0);
-//        bgAnim.setDuration(duration);
-//        bgAnim.start();
+        if (mEnableRotation) {
+            mImageView.setRotation(90f);
+            mImageView.animate().rotation(0f);
+        }
+
+//        mImageView.animate().alpha(0);
+        // Fade out background
+        ObjectAnimator bgAnim = ObjectAnimator.ofInt(mBackground, "alpha", 0);
+        bgAnim.setDuration(duration);
+        bgAnim.start();
     }
 
     /**
