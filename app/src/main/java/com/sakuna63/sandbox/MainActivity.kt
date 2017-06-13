@@ -1,9 +1,9 @@
 package com.sakuna63.sandbox
 
 import android.databinding.DataBindingUtil
+import android.graphics.Color
 import android.os.Bundle
 import android.os.Looper
-import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import com.sakuna63.sandbox.databinding.ActivityMainBinding
@@ -22,10 +22,11 @@ class MainActivity : AppCompatActivity() {
                 if (Looper.myLooper() == null) {
                     Looper.prepare()
                 }
-                AlertDialog.Builder(this@MainActivity)
-                        .setTitle("test")
-                        .setMessage("test test test")
-                        .show()
+                binding.root.setBackgroundColor(Color.BLUE)
+//                AlertDialog.Builder(this@MainActivity)
+//                        .setTitle("test")
+//                        .setMessage("test test test")
+//                        .show()
                 Log.d("TAG", "finish")
             }
         }
