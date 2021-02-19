@@ -1,0 +1,11 @@
+machine:
+  services:
+    - docker
+
+dependencies:
+  pre:
+    - docker build -t sandbox .
+
+test:
+  override:
+    - docker run sandbox
